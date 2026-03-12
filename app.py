@@ -252,7 +252,7 @@ def trade(model):
             continue
 
 # -----------------------------
-# 백그라운드 엔진
+# 백그라운드 엔진 (2분마다)
 # -----------------------------
 def ai_engine():
     while True:
@@ -260,7 +260,7 @@ def ai_engine():
         model = train()
         if model:
             trade(model)
-        time.sleep(60)
+        time.sleep(120)  # 2분마다 반복
 
 # -----------------------------
 # Streamlit UI
@@ -297,6 +297,7 @@ c3.metric("코인 평가", f"{coin_value:,.0f}")
 st.subheader("보유 코인")
 st.dataframe(pd.DataFrame(rows))
 
+# 최근 거래
 hist = pd.read_sql("SELECT * FROM trades ORDER BY id DESC LIMIT 50", conn)
 st.subheader("최근 거래")
 st.dataframe(hist)
@@ -313,4 +314,4 @@ st.write(f"총 매도금액: {total_sell:,.0f}원")
 st.write(f"총 이익금: {total_profit:,.0f}원")
 st.write(f"총 수익률: {total_profit_percent:.2f}%")
 
-st.write("⚠️ Streamlit 종료 후에도 1분마다 학습과 매매가 백그라운드에서 DB에 저장됩니다.")
+st.write("⚠️ Streamlit 종료 후에도 2분마다 학습과 매매가 백그라운드에서 DB에 저장됩니다.")
