@@ -21,6 +21,13 @@ conn = sqlite3.connect(DB, check_same_thread=False)
 cur = conn.cursor()
 
 # -----------------------------
+# 업비트 로그인 (실거래용)
+# -----------------------------
+ACCESS_KEY = "여기에_업비트_access_key"
+SECRET_KEY = "여기에_업비트_secret_key"
+upbit = pyupbit.Upbit(ACCESS_KEY, SECRET_KEY)
+
+# -----------------------------
 # DB 생성
 # -----------------------------
 cur.execute("""
@@ -216,6 +223,10 @@ def trade(model):
             invest = krw*0.1
             if invest < 10000: continue
             qty = invest / price
+
+            # 실제 매수
+            upbit.buy_market_order(coin, invest)
+
             krw -= invest
             save_wallet(krw)
             save_position(coin, qty, price)
@@ -237,9 +248,14 @@ def trade(model):
             df = indicators(df) if df is not None else None
             f = features(df)
             prob = model.predict([f])[0]
+
             if prob < 0.45 or profit > 0.08*pos["buy_price"]*pos["qty"] or profit < -0.03*pos["buy_price"]*pos["qty"]:
                 qty = pos["qty"]
                 krw = load_wallet()
+
+                # 실제 매도
+                upbit.sell_market_order(coin, qty*price)
+
                 krw += qty*price
                 save_wallet(krw)
                 delete_position(coin)
@@ -264,7 +280,7 @@ def ai_engine():
 # -----------------------------
 # Streamlit UI
 # -----------------------------
-st.title("AI Crypto Trader 1분 자동 백그라운드")
+st.title("AI Crypto Trader 1분 자동 실거래")
 
 # 백그라운드 스레드 실행
 if "engine_started" not in st.session_state:
@@ -289,9 +305,9 @@ for coin,pos in positions.items():
 
 asset = krw + coin_value
 c1,c2,c3 = st.columns(3)
-c1.metric("총 자산", f"{asset:,.0f}")
-c2.metric("현금", f"{krw:,.0f}")
-c3.metric("코인 평가", f"{coin_value:,.0f}")
+c1.metric("총 자산", f"{asset:,.0f} KRW")
+c2.metric("현금", f"{krw:,.0f} KRW")
+c3.metric("코인 평가", f"{coin_value:,.0f} KRW")
 
 st.subheader("보유 코인")
 st.dataframe(pd.DataFrame(rows))
