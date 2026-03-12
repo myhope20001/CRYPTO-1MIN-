@@ -1,6 +1,6 @@
-pyupbit
-pandas
-numpy
-requests
-lightgbm
-streamlit
+streamlit==1.29.0
+pyupbit==1.2.12
+pandas==2.1.0
+numpy==1.26.0
+requests==2.32.0
+lightgbm==4.0.0
