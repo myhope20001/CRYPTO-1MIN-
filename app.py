@@ -80,8 +80,7 @@ conn.commit()
 # 지갑/포지션 관리
 # -----------------------------
 def load_wallet():
-    krw = cur.execute("SELECT krw FROM wallet WHERE id=1").fetchone()[0]
-    return krw
+    return cur.execute("SELECT krw FROM wallet WHERE id=1").fetchone()[0]
 
 def save_wallet(krw):
     cur.execute("UPDATE wallet SET krw=? WHERE id=1", (krw,))
@@ -114,7 +113,7 @@ def indicators(df):
     return df
 
 def features(df):
-    if df is None or df.empty: 
+    if df is None or df.empty:
         return [0.5]*30
     r = df.iloc[-1]
     f = [
@@ -297,21 +296,26 @@ c3.metric("코인 평가", f"{coin_value:,.0f}")
 st.subheader("보유 코인")
 st.dataframe(pd.DataFrame(rows))
 
-# 최근 거래
-hist = pd.read_sql("SELECT * FROM trades ORDER BY id DESC LIMIT 50", conn)
-st.subheader("최근 거래")
-st.dataframe(hist)
+# -----------------------------
+# 최근 거래: 종목, 매수총금액, 매도총금액, 수익, 수익률
+# -----------------------------
+hist = pd.read_sql("SELECT * FROM trades ORDER BY id DESC", conn)
 
-# 총합 계산
-total_buy = hist[hist.side=="BUY"]["trade_value"].sum() if 'side' in hist.columns else 0
-total_sell = hist[hist.side=="SELL"]["trade_value"].sum() if 'side' in hist.columns else 0
-total_profit = hist[hist.side=="SELL"]["profit"].sum() if 'side' in hist.columns else 0
-total_profit_percent = (total_profit/total_buy*100) if total_buy>0 else 0
+summary = []
+for ticker, g in hist.groupby("ticker"):
+    buy_total = g[g.side=="BUY"]["trade_value"].sum()
+    sell_total = g[g.side=="SELL"]["trade_value"].sum()
+    profit_total = g[g.side=="SELL"]["profit"].sum()
+    profit_percent = (profit_total/buy_total*100) if buy_total>0 else 0
+    summary.append({
+        "종목": ticker,
+        "매수총금액": buy_total,
+        "매도총금액": sell_total,
+        "수익": profit_total,
+        "수익률(%)": profit_percent
+    })
 
-st.subheader("총합")
-st.write(f"총 매수금액: {total_buy:,.0f}원")
-st.write(f"총 매도금액: {total_sell:,.0f}원")
-st.write(f"총 이익금: {total_profit:,.0f}원")
-st.write(f"총 수익률: {total_profit_percent:.2f}%")
+st.subheader("최근 거래 요약")
+st.dataframe(pd.DataFrame(summary))
 
 st.write("⚠️ Streamlit 종료 후에도 2분마다 학습과 매매가 백그라운드에서 DB에 저장됩니다.")
